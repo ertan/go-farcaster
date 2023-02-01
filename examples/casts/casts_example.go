@@ -24,27 +24,25 @@ func main() {
 	farcaster := farcaster.NewFarcasterClient(apiUrl, mnemonic, providerWs)
 	println("Farcaster client created")
 
-	// // Recent casts
-	// casts, _, err := farcaster.Casts.GetRecentCasts(10)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// println("Recent casts fetched")
-	// prettyPrint(casts)
-
+	// Recent casts
+	casts, _, err := farcaster.Casts.GetRecentCasts(10)
+	if err != nil {
+		panic(err)
+	}
+	println("Recent casts fetched")
+	prettyPrint(casts)
 	// Casts by user
-	casts, _, err := farcaster.Casts.GetCastsByFname("ertan", 0, "")
+	casts, _, err = farcaster.Casts.GetCastsByFname("ertan", 0, "")
 	if err != nil {
 		panic(err)
 	}
 	prettyPrint(&casts[0])
-
-	// // Cast by hash
-	// cast, err := farcaster.Casts.GetCastByHash("0x24b6f70d58ca9bd48f2372d329f3ba0ed6d569550698928b7bf00897e5a6d19a")
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// prettyPrint(&cast)
+	// Cast by hash
+	cast, err := farcaster.Casts.GetCastByHash("0x24b6f70d58ca9bd48f2372d329f3ba0ed6d569550698928b7bf00897e5a6d19a")
+	if err != nil {
+		panic(err)
+	}
+	prettyPrint(&cast)
 
 	// Uncomment for mutating examples
 	// // Publish cast

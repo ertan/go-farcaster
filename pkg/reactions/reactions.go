@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/ertan/farcaster-go/pkg/account"
-	"github.com/ertan/farcaster-go/pkg/users"
+	"github.com/ertan/go-farcaster/pkg/account"
+	"github.com/ertan/go-farcaster/pkg/users"
 )
 
 type ReactionService struct {

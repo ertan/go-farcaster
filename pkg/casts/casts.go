@@ -5,9 +5,9 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/ertan/farcaster-go/pkg/account"
-	"github.com/ertan/farcaster-go/pkg/registry"
-	"github.com/ertan/farcaster-go/pkg/users"
+	"github.com/ertan/go-farcaster/pkg/account"
+	"github.com/ertan/go-farcaster/pkg/registry"
+	"github.com/ertan/go-farcaster/pkg/users"
 )
 
 type CastService struct {

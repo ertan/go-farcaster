@@ -1,4 +1,4 @@
-module github.com/ertan/farcaster-go
+module github.com/ertan/go-farcaster
 
 go 1.19
 

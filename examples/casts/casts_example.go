@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 
-	farcaster "github.com/ertan/farcaster-go/pkg"
+	farcaster "github.com/ertan/go-farcaster/pkg"
 	"github.com/spf13/viper"
 )
 

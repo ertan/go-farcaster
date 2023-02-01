@@ -3,8 +3,23 @@ This is the Golang implementation for Farcaster client based on the [official do
 
 Inspired by [Rust](https://github.com/TheLDB/farcaster-rs) and [Python](https://github.com/a16z/farcaster-py) client implementations. Coauthored by GitHub Copilot and ChatGPT. 🙏
 
-## Prerequisites
-In order to test the examples you need to set the following environment variables in .env file.
+## Installation
+```
+go get github.com/ertan/go-farcaster
+```
+
+## Usage
+```
+apiUrl := "https://api.farcaster.xyz"
+mnemonic := "Farcaster mnemonic"
+providerWs := "Optional: Goerli endpoint"
+fc := farcaster.NewFarcasterClient(apiUrl, mnemonic, providerWs)
+casts, _, err := fc.Casts.GetRecentCasts(10)
+```
+You can find other examples under `examples/` directory.
+
+## Development
+In order to test the examples you need to set the following environment variables in .env file in the repo's root directory. 
 ```
 FARCASTER_API_URL    = "https://api.farcaster.xyz"
 FARCASTER_MNEMONIC   = "your mnemonic"
@@ -12,7 +27,7 @@ ETHEREUM_PROVIDER_WS = "your Goerli endpoint"
 ```
 Registry is built based on the event logs to get fid <> fname <> address mappings. If `ETHEREUM_PROVIDER_WS` variable isn't set, you can still use the API. Mnemonic is required for authorization to access most of the API endpoints. However, it's not required by the client as some endpoints are open to public.
 
-## Examples
+### Examples
 Some examples to test the client are:
 ```
 go run examples/casts/casts_example.go
@@ -23,7 +38,6 @@ go run examples/reactions/reactions_example.go
 ```
 go run examples/users/users_example.go
 ```
-You can find other example runs under `examples/` directory.
 
 ## Future Work
 - Tests! There are currently no unit tests for the client, just examples. 😅

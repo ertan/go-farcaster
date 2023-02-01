@@ -27,3 +27,4 @@ You can find other example runs under `examples/` directory.
 
 ## Future Work
 - Tests! There are currently no unit tests for the client, just examples. 😅
+- Missing comments on exported functions and structs. 

@@ -1,5 +1,5 @@
 # Farcaster Go Client
-This is the Golang implementation for Farcaster client based on the [official documentation](https://farcasterxyz.notion.site/Merkle-v2-API-Documentation-c19a9494383a4ce0bd28db6d44d99ea8#a30b0e73495240e1a091a9cd5b736fb8).
+This is the Golang implementation for Farcaster client based on the [official v2 API documentation](https://farcasterxyz.notion.site/Merkle-v2-API-Documentation-c19a9494383a4ce0bd28db6d44d99ea8).
 
 Inspired by [Rust](https://github.com/TheLDB/farcaster-rs) and [Python](https://github.com/a16z/farcaster-py) client implementations. Coauthored by GitHub Copilot and ChatGPT. 🙏
 

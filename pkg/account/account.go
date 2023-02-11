@@ -21,6 +21,15 @@ type AccountService struct {
 	apiUrl      string
 	accessToken string
 	expiresAt   int64
+	clock       func() time.Time
+}
+
+func (a *AccountService) now() time.Time {
+	if a.clock == nil {
+		return time.Now() // default implementation which fall back to standard library
+	}
+
+	return a.clock()
 }
 
 func NewAccountService(apiUrl, mnemonic string) *AccountService {
@@ -61,7 +70,7 @@ func (a *AccountService) GetAccessToken(expirationInSecs int) (string, error) {
 		return "", errors.New("private key is nil")
 	}
 
-	timestamp := time.Now().UnixMilli()
+	timestamp := a.now().UnixMilli()
 	expiration := timestamp + int64(expirationInSecs*1000)
 	if timestamp < a.expiresAt {
 		return a.accessToken, nil

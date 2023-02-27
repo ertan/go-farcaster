@@ -10,7 +10,7 @@ go get github.com/ertan/go-farcaster
 
 ## Usage
 ```
-apiUrl := "https://api.farcaster.xyz"
+apiUrl := "https://api.warpcast.xyz"
 mnemonic := "Farcaster mnemonic"
 providerWs := "Optional: Goerli endpoint"
 fc := farcaster.NewFarcasterClient(apiUrl, mnemonic, providerWs)
@@ -21,7 +21,7 @@ You can find other examples under `examples/` directory.
 ## Development
 In order to test the examples you need to set the following environment variables in .env file in the repo's root directory. 
 ```
-FARCASTER_API_URL    = "https://api.farcaster.xyz"
+FARCASTER_API_URL    = "https://api.warpcast.xyz"
 FARCASTER_MNEMONIC   = "your mnemonic"
 ETHEREUM_PROVIDER_WS = "your Goerli endpoint"
 ```

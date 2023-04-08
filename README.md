@@ -10,7 +10,7 @@ go get github.com/ertan/go-farcaster
 
 ## Usage
 ```
-apiUrl := "https://api.warpcast.xyz"
+apiUrl := "https://api.warpcast.com"
 mnemonic := "Farcaster mnemonic"
 providerWs := "Optional: Goerli endpoint"
 fc := farcaster.NewFarcasterClient(apiUrl, mnemonic, providerWs)

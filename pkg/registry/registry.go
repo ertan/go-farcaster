@@ -3,12 +3,13 @@ package registry
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"math/big"
+	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -18,6 +19,7 @@ import (
 )
 
 const (
+	BLOCK_RANGE          = 2000
 	FIR_DEPLOYMENT_BLOCK = 7_648_795
 	FNR_DEPLOYMENT_BLOCK = 7_648_795
 	FIR_CONTRACT_ADDRESS = "0xda107a1caf36d198b12c16c7b6a1d1c795978c42"
@@ -34,34 +36,37 @@ type RegistryService struct {
 	fnrBlock uint64
 	fnr      map[string]string // username -> address
 	client   *ethclient.Client
+	logger   *log.Logger
 }
 
 func NewRegistryService(providerWs string) *RegistryService {
+	logger := log.New(os.Stdout, "", log.LstdFlags)
 	if providerWs == "" {
-		log.Println("providerWs is empty, not connecting to the blockchain")
+		logger.Println("providerWs is empty, not connecting to the blockchain")
 		return nil
 	}
 	firAbiJson, err := ioutil.ReadFile("pkg/registry/abi/IdRegistryV2.json")
 	if err != nil {
-		log.Fatal("Error when opening file: ", err)
+		logger.Fatal("Error when opening file: ", err)
 	}
 	firAbi, err := abi.JSON(strings.NewReader(string(firAbiJson)))
 	if err != nil {
-		log.Fatal("Error when parsing abi: ", err)
+		logger.Fatal("Error when parsing abi: ", err)
 	}
 	fnrAbiJson, err := ioutil.ReadFile("pkg/registry/abi/NameRegistryV2.json")
 	if err != nil {
-		log.Fatal("Error when opening file: ", err)
+		logger.Fatal("Error when opening file: ", err)
 	}
 	fnrAbi, err := abi.JSON(strings.NewReader(string(fnrAbiJson)))
 	if err != nil {
-		log.Fatal("Error when parsing abi: ", err)
+		logger.Fatal("Error when parsing abi: ", err)
 	}
-	fmt.Println("Connecting to Ethereum node: ", providerWs)
+	logger.Println("Connecting to Ethereum node: ", providerWs)
 	client, err := ethclient.Dial(providerWs)
 	if err != nil {
-		log.Fatal("Error when dialing: ", err)
+		logger.Fatal("Error when dialing: ", err)
 	}
+	logger.Println("Connected to Ethereum node: ", providerWs)
 	registry := &RegistryService{
 		// read from IdRegistryV2.json into json.Unmarshal()
 		firAbi:   firAbi,
@@ -71,6 +76,7 @@ func NewRegistryService(providerWs string) *RegistryService {
 		fnrBlock: FNR_DEPLOYMENT_BLOCK,
 		fnr:      make(map[string]string),
 		client:   client,
+		logger:   logger,
 	}
 	err = registry.sync()
 	if err != nil {
@@ -135,24 +141,30 @@ func (r *RegistryService) GetFnameByAddress(address string) (string, error) {
 func (r *RegistryService) sync() error {
 	var wg sync.WaitGroup
 	wg.Add(2)
-
+	header, err := r.client.HeaderByNumber(context.Background(), nil)
+	if err != nil {
+		return err
+	}
+	currentBlock := header.Number.Uint64()
+	r.logger.Println("Syncing registry until block ", currentBlock)
 	errChan := make(chan error)
 
 	go func() {
-		if err := r.syncFirLogs(); err != nil {
+		if err := r.syncFirLogs(currentBlock); err != nil {
 			errChan <- err
 		}
 		wg.Done()
 	}()
 
 	go func() {
-		if err := r.syncFnrLogs(); err != nil {
+		if err := r.syncFnrLogs(currentBlock); err != nil {
 			errChan <- err
 		}
 		wg.Done()
 	}()
 
 	wg.Wait()
+	r.logger.Println("Synced registry until block ", currentBlock)
 
 	select {
 	case err := <-errChan:
@@ -162,10 +174,9 @@ func (r *RegistryService) sync() error {
 	}
 }
 
-func (r *RegistryService) syncFirLogs() error {
+func (r *RegistryService) syncFirLogs(blockNo uint64) error {
 	contractAddress := common.HexToAddress(FIR_CONTRACT_ADDRESS)
 	query := ethereum.FilterQuery{
-		FromBlock: new(big.Int).SetUint64(r.firBlock),
 		Addresses: []common.Address{
 			contractAddress,
 		},
@@ -173,34 +184,40 @@ func (r *RegistryService) syncFirLogs() error {
 			{common.HexToHash(REGISTER_TOPIC)},
 		},
 	}
-	logs, err := r.client.FilterLogs(context.Background(), query)
-	if err != nil {
-		return err
-	}
-	for _, vLog := range logs {
-		blockNumber := vLog.BlockNumber
-		if blockNumber > r.firBlock {
-			r.firBlock = blockNumber
+	for i := r.firBlock; i < blockNo; i += BLOCK_RANGE {
+		query.FromBlock = new(big.Int).SetUint64(i)
+		query.ToBlock = new(big.Int).SetUint64(i + BLOCK_RANGE)
+		logs, err := r.client.FilterLogs(context.Background(), query)
+		if err != nil {
+			return err
 		}
-		address := common.BytesToAddress(vLog.Topics[1].Bytes())
-		fid := vLog.Topics[2].Big().Uint64()
-		// println("Register event: ", address.Hex(), fid)
-		// TODO(ertan): Is this needed?
-		// data, err := r.firAbi.Unpack("Register", vLog.Data)
-		// if err != nil {
-		// 	return err
-		// }
-		// recovery := data[0].(common.Address).String()
-		// url := data[1].(string)
-		r.fir[fid] = strings.ToLower(address.Hex())
+		for _, vLog := range logs {
+			blockNumber := vLog.BlockNumber
+			if blockNumber > r.firBlock {
+				r.firBlock = blockNumber
+			}
+			address := common.BytesToAddress(vLog.Topics[1].Bytes())
+			fid := vLog.Topics[2].Big().Uint64()
+			r.logger.Println("Register event: ", address.Hex(), fid)
+			// TODO(ertan): Is this needed?
+			// data, err := r.firAbi.Unpack("Register", vLog.Data)
+			// if err != nil {
+			// 	return err
+			// }
+			// recovery := data[0].(common.Address).String()
+			// url := data[1].(string)
+			r.fir[fid] = strings.ToLower(address.Hex())
+		}
+		time.Sleep(time.Millisecond * 100)
 	}
+	r.firBlock = blockNo
 	return nil
 }
 
-func (r *RegistryService) syncFnrLogs() error {
+func (r *RegistryService) syncFnrLogs(blockNo uint64) error {
 	contractAddress := common.HexToAddress(FNR_CONTRACT_ADDRESS)
+
 	query := ethereum.FilterQuery{
-		FromBlock: new(big.Int).SetUint64(r.fnrBlock),
 		Addresses: []common.Address{
 			contractAddress,
 		},
@@ -208,24 +225,30 @@ func (r *RegistryService) syncFnrLogs() error {
 			{common.HexToHash(TRANSFER_TOPIC)},
 		},
 	}
-	logs, err := r.client.FilterLogs(context.Background(), query)
-	if err != nil {
-		return err
-	}
-	for _, vLog := range logs {
-		blockNumber := vLog.BlockNumber
-		if blockNumber > r.fnrBlock {
-			r.fnrBlock = blockNumber
-		}
-		address := common.BytesToAddress(vLog.Topics[2].Bytes())
-		fnameHexStr := vLog.Topics[3].Hex()
-		fname, err := hexutil.Decode(fnameHexStr)
+	for i := r.fnrBlock; i < blockNo; i += BLOCK_RANGE {
+		query.FromBlock = new(big.Int).SetUint64(i)
+		query.ToBlock = new(big.Int).SetUint64(i + BLOCK_RANGE)
+		logs, err := r.client.FilterLogs(context.Background(), query)
 		if err != nil {
 			return err
 		}
-		fname = common.TrimRightZeroes(fname)
-		r.fnr[string(fname)] = strings.ToLower(address.Hex())
-		// println("Transfer event: ", strings.ToLower(address.Hex()), string(fname))
+		for _, vLog := range logs {
+			blockNumber := vLog.BlockNumber
+			if blockNumber > r.fnrBlock {
+				r.fnrBlock = blockNumber
+			}
+			address := common.BytesToAddress(vLog.Topics[2].Bytes())
+			fnameHexStr := vLog.Topics[3].Hex()
+			fname, err := hexutil.Decode(fnameHexStr)
+			if err != nil {
+				return err
+			}
+			fname = common.TrimRightZeroes(fname)
+			r.fnr[string(fname)] = strings.ToLower(address.Hex())
+			r.logger.Println("Transfer event: ", strings.ToLower(address.Hex()), string(fname))
+		}
+		time.Sleep(time.Millisecond * 100)
 	}
+	r.fnrBlock = blockNo
 	return nil
 }

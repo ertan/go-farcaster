@@ -38,11 +38,11 @@ func main() {
 	}
 	prettyPrint(&casts[0])
 	// Cast by hash
-	cast, err := farcaster.Casts.GetCastByHash("0x24b6f70d58ca9bd48f2372d329f3ba0ed6d569550698928b7bf00897e5a6d19a")
-	if err != nil {
-		panic(err)
-	}
-	prettyPrint(&cast)
+	// cast, err := farcaster.Casts.GetCastByHash("new hash format here")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// prettyPrint(&cast)
 
 	// Uncomment for mutating examples
 	// // Publish cast
